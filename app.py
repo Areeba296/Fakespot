@@ -4,6 +4,10 @@ import numpy as np
 import requests
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
+import google.generativeai as genai
+
+GEMINI_API_KEY = "AIzaSyCJM5AvQyeXodUjHFb55N22y_p3Bxe1FFM"
+genai.configure(api_key=GEMINI_API_KEY)
 
 # Page config
 st.set_page_config(
@@ -12,11 +16,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
-GEMINI_API_KEY = "AIzaSyCJM5AvQyeXodUjHFb55N22y_p3Bxe1FFM"
-genai.configure(api_key=GEMINI_API_KEY)
 
 # ── YOUR SERPER API KEY ───────────────────────────────────────────────────────
-SERPER_API_KEY = "71cd91a80d97bf066f5db12e4d53e36e7a34f67f"  # <- Replace with your actual key
+#SERPER_API_KEY = "71cd91a80d97bf066f5db12e4d53e36e7a34f67f"  # <- Replace with your actual key
 import os
 SERPER_API_KEY = os.getenv("SERPER_API_KEY", "71cd91a80d97bf066f5db12e4d53e36e7a34f67f")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyCJM5AvQyeXodUjHFb55N22y_p3Bxe1FFM")
@@ -411,8 +413,19 @@ def search_business(business_name, city):
             return None
     except Exception:
         return None
+def ask_assistant(question, business_context=""):
+    try:
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        prompt = f"""You are FakeSpot AI Assistant — an expert in detecting fake business listings.
+You help users understand fake business patterns and explain risk scores.
+Keep answers concise, clear and helpful.
+{f'Current business context: {business_context}' if business_context else ''}
 
-
+User question: {question}"""
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        return f"Sorry I could not process that. Error: {str(e)}"
 # ── Analyze business ──────────────────────────────────────────────────────────
 def analyze_business(place):
     name = place.get('name', 'Unknown')
@@ -717,6 +730,57 @@ st.markdown("""
     </div>
 </div>
 """, unsafe_allow_html=True)
+st.markdown('<div class="custom-divider"></div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">💬 <span>AI</span> Assistant</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-subtitle">Ask anything about fake businesses or FakeSpot</div>', unsafe_allow_html=True)
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Show chat history
+for msg in st.session_state.messages:
+    if msg["role"] == "user":
+        st.markdown(f"""
+        <div style="background:#1a1a2e;border:1px solid rgba(180,0,255,0.2);
+        border-radius:12px;padding:14px 18px;margin-bottom:10px;
+        font-size:14px;color:#e0e0f0;">
+        👤 {msg["content"]}</div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div style="background:#0d1117;border:1px solid rgba(0,220,100,0.2);
+        border-radius:12px;padding:14px 18px;margin-bottom:10px;
+        font-size:14px;color:#b0f0c0;">
+        🤖 {msg["content"]}</div>
+        """, unsafe_allow_html=True)
+
+# Input
+col1, col2 = st.columns([4, 1])
+with col1:
+    user_input = st.text_input(
+        "YOUR QUESTION",
+        placeholder="e.g. How do I spot a fake business? Why was this business flagged?",
+        key="chat_input"
+    )
+with col2:
+    st.markdown("<br>", unsafe_allow_html=True)
+    send_btn = st.button("💬 Ask")
+
+if send_btn and user_input:
+    st.session_state.messages.append({
+        "role": "user",
+        "content": user_input
+    })
+    with st.spinner("🤖 Thinking..."):
+        try:
+            response = ask_assistant(user_input)
+            st.session_state.messages.append({
+                "role": "assistant", 
+                "content": response
+            })
+            st.rerun()
+        except Exception as e:
+            st.error(f"Assistant error: {str(e)}")
 
 st.markdown("""
 <div class="footer">
