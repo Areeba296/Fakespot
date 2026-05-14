@@ -16,7 +16,7 @@ st.set_page_config(
 
 # ── API Keys ──────────────────────────────────────────────────────────────────
 import os
-SERPER_API_KEY = os.getenv("SERPER_API_KEY", "71cd91a80d97bf066f5db12e4d53e36e7a34f67")
+SERPER_API_KEY = os.getenv("SERPER_API_KEY", "8c44297978b71b13b53c19145bb6cc4fc541dcc2")
 
 # ── Custom CSS ────────────────────────────────────────────────────────────────
 st.markdown("""
