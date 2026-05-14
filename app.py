@@ -417,8 +417,8 @@ def search_business(business_name, city):
 def ask_assistant(question, business_context=""):
     try:
         prompt = f"""You are FakeSpot AI Assistant — an expert in detecting fake business listings.
-    You help users understand fake business patterns and explain risk scores.
-    Keep answers concise, clear and helpful.
+You help users understand fake business patterns and explain risk scores.
+Keep answers concise, clear and helpful.
 {f'Current business context: {business_context}' if business_context else ''}
 
 User question: {question}"""
@@ -437,7 +437,13 @@ User question: {question}"""
             timeout=15
         )
         data = response.json()
+
+        # Debug — show full response if error
+        if 'choices' not in data:
+            return f"API Response: {str(data)}"
+
         return data['choices'][0]['message']['content']
+
     except Exception as e:
         return f"Sorry I could not process that. Error: {str(e)}"
     
