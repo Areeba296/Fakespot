@@ -16,6 +16,7 @@ st.set_page_config(
 
 # ── API Keys ──────────────────────────────────────────────────────────────────
 import os
+#SERPER_API_KEY = os.getenv("SERPER_API_KEY", "71cd91a80d97bf066f5db12e4d53e36e7a34f67f")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY", "98c966b3b57dcad180a9d38a46b675c921df47b2")
 
 # ── Custom CSS ────────────────────────────────────────────────────────────────
@@ -603,7 +604,9 @@ def show_radar_chart(a):
         height=350
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    #st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, key=f"radar_{a['name']}_{a['city']}")
+    
 
 
 # ── Hero ──────────────────────────────────────────────────────────────────────
