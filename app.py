@@ -1,16 +1,12 @@
-import os
 import streamlit as st
 import pandas as pd
 import numpy as np
 import requests
+import plotly.graph_objects as go
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
-import google.generativeai as genai
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-
-
-# Page config
+# ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="FakeSpot — Fake Business Detector",
     page_icon="🔍",
@@ -18,11 +14,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ── YOUR SERPER API KEY ───────────────────────────────────────────────────────
-#SERPER_API_KEY = "71cd91a80d97bf066f5db12e4d53e36e7a34f67f"  # <- Replace with your actual key
-
+# ── API Keys ──────────────────────────────────────────────────────────────────
 import os
-SERPER_API_KEY = os.getenv("SERPER_API_KEY", "71cd91a80d97bf066f5db12e4d53e36e7a34f67f")
+SERPER_API_KEY = os.getenv("SERPER_API_KEY", "71cd91a80d97bf066f5db12e4d53e36e7a34f67")
 
 # ── Custom CSS ────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -90,7 +84,6 @@ html, body, .stApp {
     max-width: 600px;
     line-height: 1.6;
 }
-
 .stats-row {
     display: flex;
     gap: 12px;
@@ -106,7 +99,6 @@ html, body, .stApp {
     color: #9090b0;
 }
 .stat-pill strong { color: #ffffff; }
-
 .section-title {
     font-family: 'Syne', sans-serif;
     font-size: 22px;
@@ -119,7 +111,6 @@ html, body, .stApp {
     color: #6060a0;
     margin-bottom: 20px;
 }
-
 .stTextInput > div > div > input {
     background: #12121f !important;
     border: 1.5px solid rgba(180,0,255,0.3) !important;
@@ -141,7 +132,6 @@ html, body, .stApp {
     letter-spacing: 1px !important;
     text-transform: uppercase !important;
 }
-
 .stButton > button {
     background: linear-gradient(135deg, #b400ff, #ff3c00) !important;
     color: white !important;
@@ -153,7 +143,6 @@ html, body, .stApp {
     padding: 14px 32px !important;
     width: 100% !important;
 }
-
 .result-card {
     border-radius: 20px;
     padding: 32px;
@@ -414,39 +403,8 @@ def search_business(business_name, city):
             return None
     except Exception:
         return None
-def ask_assistant(question, business_context=""):
-    try:
-        prompt = f"""You are FakeSpot AI Assistant — an expert in detecting fake business listings.
-You help users understand fake business patterns and explain risk scores.
-Keep answers concise, clear and helpful.
-{f'Current business context: {business_context}' if business_context else ''}
 
-User question: {question}"""
 
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "mistralai/mistral-7b-instruct:free",
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 500
-            },
-            timeout=15
-        )
-        data = response.json()
-
-        # Debug — show full response if error
-        if 'choices' not in data:
-            return f"API Response: {str(data)}"
-
-        return data['choices'][0]['message']['content']
-
-    except Exception as e:
-        return f"Sorry I could not process that. Error: {str(e)}"
-    
 # ── Analyze business ──────────────────────────────────────────────────────────
 def analyze_business(place):
     name = place.get('name', 'Unknown')
@@ -466,7 +424,6 @@ def analyze_business(place):
 
     features = {}
 
-    # Feature 1: High rating with very few reviews
     if rating and total_ratings:
         features['high_rating_low_reviews'] = int(rating >= 4.8 and total_ratings < 10)
         features['rating_review_ratio'] = rating / np.log1p(total_ratings + 1)
@@ -478,17 +435,14 @@ def analyze_business(place):
         features['stars'] = 0
         features['review_count'] = 0
 
-    # Feature 2: Open but no reviews
     features['open_no_reviews'] = int(
         bool(is_open) and total_ratings == 0
     ) if is_open is not None else 0
 
-    # Feature 3: Round review count only suspicious if very few reviews
     features['round_review_count'] = int(
         total_ratings % 10 == 0 and 0 < total_ratings < 50
     ) if total_ratings else 0
 
-    # Feature 4: Incomplete location
     features['incomplete_location'] = int(
         city == 'Unknown' or address == 'Unknown'
     )
@@ -508,7 +462,7 @@ def analyze_business(place):
         except Exception:
             ml_score = 50
 
-    # Rule-based score
+    # Rule based score
     rule_score = 0
     reasons = []
 
@@ -535,7 +489,7 @@ def analyze_business(place):
     if not reasons:
         reasons.append("No major red flags detected — business appears legitimate")
 
-    # Reputation bonus — reduce ML score for well established businesses
+    # Reputation bonus
     reputation_bonus = 0
     if rating and total_ratings:
         if rating >= 4.0 and total_ratings >= 50:
@@ -549,11 +503,9 @@ def analyze_business(place):
         if rating >= 4.7 and total_ratings >= 5000:
             reputation_bonus = 30
 
-    # Apply reputation bonus to ML score
     adjusted_ml_score = max(0, ml_score - reputation_bonus)
-
-    # Final combined score
     final_score = round(min(100, max(0, (adjusted_ml_score * 0.6 + rule_score * 0.4))), 1)
+
     if final_score >= 70:
         risk_text = 'HIGH RISK'
         score_class = 'score-high'
@@ -581,15 +533,72 @@ def analyze_business(place):
         'is_open': is_open,
         'tel': tel,
         'website': website,
-        'ml_score': round(ml_score, 1),
+        'ml_score': round(adjusted_ml_score, 1),
         'rule_score': round(rule_score, 1),
         'final_score': final_score,
         'risk_text': risk_text,
         'score_class': score_class,
         'tag_class': tag_class,
         'card_class': card_class,
-        'reasons': reasons
+        'reasons': reasons,
+        'features': features
     }
+
+
+# ── Radar Chart ───────────────────────────────────────────────────────────────
+def show_radar_chart(a):
+    categories = [
+        'Rating Anomaly',
+        'Review Pattern',
+        'Location Trust',
+        'Open Status',
+        'ML Anomaly'
+    ]
+
+    rating_anomaly = 80 if a['features'].get('high_rating_low_reviews') else 10
+    review_pattern = 80 if a['features'].get('round_review_count') else 15
+    location_trust = 70 if a['features'].get('incomplete_location') else 10
+    open_status = 60 if a['features'].get('open_no_reviews') else 10
+    ml_anomaly = a['ml_score']
+
+    values = [rating_anomaly, review_pattern, location_trust, open_status, ml_anomaly]
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatterpolar(
+        r=values + [values[0]],
+        theta=categories + [categories[0]],
+        fill='toself',
+        fillcolor='rgba(180, 0, 255, 0.15)',
+        line=dict(color='#b400ff', width=2),
+        name='Risk Signals'
+    ))
+
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 100],
+                tickfont=dict(color='#6060a0', size=10),
+                gridcolor='rgba(255,255,255,0.08)'
+            ),
+            angularaxis=dict(
+                tickfont=dict(color='#9090b0', size=11),
+                gridcolor='rgba(255,255,255,0.08)'
+            ),
+            bgcolor='rgba(0,0,0,0)'
+        ),
+        paper_bgcolor='rgba(0,0,0,0)',
+        showlegend=False,
+        title=dict(
+            text='🕸️ Fraud Signal Radar',
+            font=dict(color='#ffffff', size=15),
+            x=0.5
+        ),
+        margin=dict(l=40, r=40, t=60, b=40),
+        height=350
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
 
 
 # ── Hero ──────────────────────────────────────────────────────────────────────
@@ -704,6 +713,9 @@ if search_btn and business_name and city:
 </div>
 """, unsafe_allow_html=True)
 
+            # Show Radar Chart
+            show_radar_chart(a)
+
 elif search_btn:
     st.markdown(
         '<div class="no-result">💡 Please enter both a business name and city</div>',
@@ -719,7 +731,7 @@ st.markdown("""
         <div class="step-number">1</div>
         <div class="step-content">
             <strong>Real-Time Data Fetch</strong>
-            Google Maps data is retrieved via Serper API — covering businesses
+            Google business data is retrieved via Serper API covering businesses
             worldwide including Pakistan with real ratings and review counts
         </div>
     </div>
@@ -735,10 +747,10 @@ st.markdown("""
     <div class="how-step">
         <div class="step-number">3</div>
         <div class="step-content">
-            <strong>Smart Signal Detection</strong>
-            Rule-based analysis checks for genuine red flags: suspiciously perfect
-            ratings with almost no reviews, missing location data, and unusual
-            review patterns — while rewarding businesses with many genuine reviews
+            <strong>Fraud Signal Radar</strong>
+            A visual radar chart shows exactly which signals triggered the risk
+            score — rating anomaly, review patterns, location trust, open status
+            and ML anomaly score
         </div>
     </div>
     <div class="how-step">
@@ -751,57 +763,6 @@ st.markdown("""
     </div>
 </div>
 """, unsafe_allow_html=True)
-st.markdown('<div class="custom-divider"></div>', unsafe_allow_html=True)
-st.markdown('<div class="section-title">💬 <span>AI</span> Assistant</div>', unsafe_allow_html=True)
-st.markdown('<div class="section-subtitle">Ask anything about fake businesses or FakeSpot</div>', unsafe_allow_html=True)
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# Show chat history
-for msg in st.session_state.messages:
-    if msg["role"] == "user":
-        st.markdown(f"""
-        <div style="background:#1a1a2e;border:1px solid rgba(180,0,255,0.2);
-        border-radius:12px;padding:14px 18px;margin-bottom:10px;
-        font-size:14px;color:#e0e0f0;">
-        👤 {msg["content"]}</div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-        <div style="background:#0d1117;border:1px solid rgba(0,220,100,0.2);
-        border-radius:12px;padding:14px 18px;margin-bottom:10px;
-        font-size:14px;color:#b0f0c0;">
-        🤖 {msg["content"]}</div>
-        """, unsafe_allow_html=True)
-
-# Input
-col1, col2 = st.columns([4, 1])
-with col1:
-    user_input = st.text_input(
-        "YOUR QUESTION",
-        placeholder="e.g. How do I spot a fake business? Why was this business flagged?",
-        key="chat_input"
-    )
-with col2:
-    st.markdown("<br>", unsafe_allow_html=True)
-    send_btn = st.button("💬 Ask")
-
-if send_btn and user_input:
-    st.session_state.messages.append({
-        "role": "user",
-        "content": user_input
-    })
-    with st.spinner("🤖 Thinking..."):
-        try:
-            response = ask_assistant(user_input)
-            st.session_state.messages.append({
-                "role": "assistant", 
-                "content": response
-            })
-            st.rerun()
-        except Exception as e:
-            st.error(f"Assistant error: {str(e)}")
 
 st.markdown("""
 <div class="footer">
