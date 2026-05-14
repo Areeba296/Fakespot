@@ -12,9 +12,14 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+GEMINI_API_KEY = "AIzaSyCJM5AvQyeXodUjHFb55N22y_p3Bxe1FFM"
+genai.configure(api_key=GEMINI_API_KEY)
 
 # ── YOUR SERPER API KEY ───────────────────────────────────────────────────────
 SERPER_API_KEY = "71cd91a80d97bf066f5db12e4d53e36e7a34f67f"  # <- Replace with your actual key
+import os
+SERPER_API_KEY = os.getenv("SERPER_API_KEY", "71cd91a80d97bf066f5db12e4d53e36e7a34f67f")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyCJM5AvQyeXodUjHFb55N22y_p3Bxe1FFM")
 
 # ── Custom CSS ────────────────────────────────────────────────────────────────
 st.markdown("""
