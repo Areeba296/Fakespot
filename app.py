@@ -1,12 +1,11 @@
+import os
 import streamlit as st
 import pandas as pd
 import numpy as np
 import requests
-import plotly.graph_objects as go
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
-# ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="FakeSpot — Fake Business Detector",
     page_icon="🔍",
@@ -14,30 +13,22 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ── API Keys ──────────────────────────────────────────────────────────────────
-import os
-#SERPER_API_KEY = os.getenv("SERPER_API_KEY", "71cd91a80d97bf066f5db12e4d53e36e7a34f67f")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY", "98c966b3b57dcad180a9d38a46b675c921df47b2")
 
-# ── Custom CSS ────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 html, body, .stApp {
     background: #0a0a0f !important;
     color: #e8e8f0 !important;
     font-family: 'DM Sans', sans-serif !important;
 }
-
 #MainMenu, footer, header { visibility: hidden; }
 .stDeployButton { display: none; }
-
 .hero {
     background: linear-gradient(135deg, #0d0d1a 0%, #12001f 50%, #0a0f1a 100%);
-    border: 1px solid rgba(180, 0, 255, 0.15);
+    border: 1px solid rgba(180,0,255,0.15);
     border-radius: 24px;
     padding: 52px 48px 44px;
     margin-bottom: 36px;
@@ -169,17 +160,8 @@ html, body, .stApp {
     color: #ffffff;
     margin-bottom: 6px;
 }
-.result-location {
-    font-size: 14px;
-    color: #6060a0;
-    margin-bottom: 16px;
-}
-.meta-row {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 24px;
-}
+.result-location { font-size: 14px; color: #6060a0; margin-bottom: 16px; }
+.meta-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
 .meta-pill {
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.08);
@@ -188,153 +170,27 @@ html, body, .stApp {
     font-size: 13px;
     color: #a0a0c0;
 }
-.score-high {
-    font-family: 'Syne', sans-serif;
-    font-size: 48px;
-    font-weight: 800;
-    color: #ff3c00;
-    line-height: 1;
-}
-.score-medium {
-    font-family: 'Syne', sans-serif;
-    font-size: 48px;
-    font-weight: 800;
-    color: #ffa000;
-    line-height: 1;
-}
-.score-low {
-    font-family: 'Syne', sans-serif;
-    font-size: 48px;
-    font-weight: 800;
-    color: #00dc64;
-    line-height: 1;
-}
-.tag-high {
-    display: inline-block;
-    background: rgba(255,60,0,0.15);
-    border: 1px solid rgba(255,60,0,0.4);
-    color: #ff6040;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    padding: 4px 12px;
-    border-radius: 100px;
-    margin-top: 8px;
-}
-.tag-medium {
-    display: inline-block;
-    background: rgba(255,160,0,0.15);
-    border: 1px solid rgba(255,160,0,0.4);
-    color: #ffb020;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    padding: 4px 12px;
-    border-radius: 100px;
-    margin-top: 8px;
-}
-.tag-low {
-    display: inline-block;
-    background: rgba(0,220,100,0.1);
-    border: 1px solid rgba(0,220,100,0.3);
-    color: #00dc64;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    padding: 4px 12px;
-    border-radius: 100px;
-    margin-top: 8px;
-}
-.flag-section-title {
-    font-size: 12px;
-    color: #6060a0;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    margin-bottom: 10px;
-    margin-top: 20px;
-}
-.flag-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 10px 14px;
-    background: rgba(255,255,255,0.03);
-    border-radius: 10px;
-    margin-bottom: 8px;
-    font-size: 14px;
-    color: #b0b0d0;
-    border-left: 2px solid rgba(180,0,255,0.3);
-}
-.bert-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(180,0,255,0.1);
-    border: 1px solid rgba(180,0,255,0.3);
-    border-radius: 100px;
-    padding: 4px 12px;
-    font-size: 12px;
-    color: #c060ff;
-    font-weight: 600;
-    margin-top: 8px;
-}
-.no-result {
-    background: #12121f;
-    border: 1px solid rgba(255,60,0,0.2);
-    border-radius: 16px;
-    padding: 24px;
-    color: #ff6040;
-    font-size: 15px;
-}
-.custom-divider {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(180,0,255,0.3), transparent);
-    margin: 40px 0;
-}
-.how-it-works {
-    background: #12121f;
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 20px;
-    padding: 32px;
-    margin-top: 40px;
-}
-.how-step {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    margin-bottom: 20px;
-}
-.step-number {
-    background: linear-gradient(135deg, #b400ff, #ff3c00);
-    color: white;
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 14px;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-.step-content { font-size: 14px; color: #9090b0; line-height: 1.6; }
-.step-content strong { color: #ffffff; display: block; margin-bottom: 2px; }
-.footer {
-    text-align: center;
-    padding: 40px;
-    color: #3a3a6a;
-    font-size: 12px;
-    letter-spacing: 2px;
-}
+.score-high { font-family:'Syne',sans-serif; font-size:48px; font-weight:800; color:#ff3c00; line-height:1; }
+.score-medium { font-family:'Syne',sans-serif; font-size:48px; font-weight:800; color:#ffa000; line-height:1; }
+.score-low { font-family:'Syne',sans-serif; font-size:48px; font-weight:800; color:#00dc64; line-height:1; }
+.tag-high { display:inline-block; background:rgba(255,60,0,0.15); border:1px solid rgba(255,60,0,0.4); color:#ff6040; font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; padding:4px 12px; border-radius:100px; margin-top:8px; }
+.tag-medium { display:inline-block; background:rgba(255,160,0,0.15); border:1px solid rgba(255,160,0,0.4); color:#ffb020; font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; padding:4px 12px; border-radius:100px; margin-top:8px; }
+.tag-low { display:inline-block; background:rgba(0,220,100,0.1); border:1px solid rgba(0,220,100,0.3); color:#00dc64; font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; padding:4px 12px; border-radius:100px; margin-top:8px; }
+.flag-section-title { font-size:12px; color:#6060a0; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:10px; margin-top:20px; }
+.flag-item { display:flex; align-items:flex-start; gap:10px; padding:10px 14px; background:rgba(255,255,255,0.03); border-radius:10px; margin-bottom:8px; font-size:14px; color:#b0b0d0; border-left:2px solid rgba(180,0,255,0.3); }
+.bert-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(180,0,255,0.1); border:1px solid rgba(180,0,255,0.3); border-radius:100px; padding:4px 12px; font-size:12px; color:#c060ff; font-weight:600; margin-top:8px; }
+.no-result { background:#12121f; border:1px solid rgba(255,60,0,0.2); border-radius:16px; padding:24px; color:#ff6040; font-size:15px; }
+.custom-divider { height:1px; background:linear-gradient(90deg, transparent, rgba(180,0,255,0.3), transparent); margin:40px 0; }
+.how-it-works { background:#12121f; border:1px solid rgba(255,255,255,0.07); border-radius:20px; padding:32px; margin-top:40px; }
+.how-step { display:flex; align-items:flex-start; gap:16px; margin-bottom:20px; }
+.step-number { background:linear-gradient(135deg, #b400ff, #ff3c00); color:white; font-family:'Syne',sans-serif; font-weight:800; font-size:14px; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.step-content { font-size:14px; color:#9090b0; line-height:1.6; }
+.step-content strong { color:#ffffff; display:block; margin-bottom:2px; }
+.footer { text-align:center; padding:40px; color:#3a3a6a; font-size:12px; letter-spacing:2px; }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ── Load training data ────────────────────────────────────────────────────────
 @st.cache_data
 def load_training_data():
     try:
@@ -367,22 +223,17 @@ if training_df is not None:
     ml_model, scaler, feature_cols = train_model(training_df)
 
 
-# ── Serper API ────────────────────────────────────────────────────────────────
 def search_business(business_name, city):
     url = "https://google.serper.dev/places"
     headers = {
         "X-API-KEY": SERPER_API_KEY,
         "Content-Type": "application/json"
     }
-    payload = {
-        "q": f"{business_name} {city}",
-        "hl": "en"
-    }
+    payload = {"q": f"{business_name} {city}", "hl": "en"}
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=10)
         if response.status_code == 200:
-            data = response.json()
-            places = data.get('places', [])
+            places = response.json().get('places', [])
             converted = []
             for r in places:
                 converted.append({
@@ -406,7 +257,6 @@ def search_business(business_name, city):
         return None
 
 
-# ── Analyze business ──────────────────────────────────────────────────────────
 def analyze_business(place):
     name = place.get('name', 'Unknown')
     location = place.get('location', {})
@@ -424,7 +274,6 @@ def analyze_business(place):
     website = place.get('website', None)
 
     features = {}
-
     if rating and total_ratings:
         features['high_rating_low_reviews'] = int(rating >= 4.8 and total_ratings < 10)
         features['rating_review_ratio'] = rating / np.log1p(total_ratings + 1)
@@ -436,21 +285,11 @@ def analyze_business(place):
         features['stars'] = 0
         features['review_count'] = 0
 
-    features['open_no_reviews'] = int(
-        bool(is_open) and total_ratings == 0
-    ) if is_open is not None else 0
-
-    features['round_review_count'] = int(
-        total_ratings % 10 == 0 and 0 < total_ratings < 50
-    ) if total_ratings else 0
-
-    features['incomplete_location'] = int(
-        city == 'Unknown' or address == 'Unknown'
-    )
-
+    features['open_no_reviews'] = int(bool(is_open) and total_ratings == 0) if is_open is not None else 0
+    features['round_review_count'] = int(total_ratings % 10 == 0 and 0 < total_ratings < 50) if total_ratings else 0
+    features['incomplete_location'] = int(city == 'Unknown' or address == 'Unknown')
     features['businesses_at_same_location'] = 1
 
-    # ML Score
     ml_score = 50
     if training_df is not None:
         try:
@@ -463,36 +302,27 @@ def analyze_business(place):
         except Exception:
             ml_score = 50
 
-    # Rule based score
     rule_score = 0
     reasons = []
 
     if features['high_rating_low_reviews']:
         rule_score += 25
         reasons.append("Very high rating with almost no reviews — suspicious pattern")
-
     if features['open_no_reviews']:
         rule_score += 20
         reasons.append("Business appears open but has zero reviews")
-
     if features['round_review_count']:
         rule_score += 10
         reasons.append("Suspiciously round review count for a new business")
-
     if features['incomplete_location']:
         rule_score += 15
         reasons.append("Incomplete or missing location details")
-
     if not rating and not total_ratings and not tel and not website:
         rule_score += 20
         reasons.append("No rating, reviews, phone or website — cannot verify legitimacy")
-
     if not reasons:
         reasons.append("No major red flags detected — business appears legitimate")
 
-    # Reputation bonus
-    reputation_bonus = 0
-    # Reputation bonus — reduce ML score for well established businesses
     reputation_bonus = 0
     if rating and total_ratings:
         if rating >= 4.0 and total_ratings >= 50:
@@ -506,10 +336,7 @@ def analyze_business(place):
         if rating >= 4.7 and total_ratings >= 5000:
             reputation_bonus = 30
 
-    # Apply reputation bonus to ML score
     adjusted_ml_score = max(0, ml_score - reputation_bonus)
-
-    # Final combined score
     final_score = round(min(100, max(0, (adjusted_ml_score * 0.6 + rule_score * 0.4))), 1)
 
     if final_score >= 70:
@@ -529,87 +356,19 @@ def analyze_business(place):
         card_class = 'low'
 
     return {
-        'name': name,
-        'city': city,
-        'country': country,
-        'address': address,
-        'category': category,
-        'rating': rating,
-        'total_ratings': total_ratings,
-        'is_open': is_open,
-        'tel': tel,
-        'website': website,
+        'name': name, 'city': city, 'country': country,
+        'address': address, 'category': category,
+        'rating': rating, 'total_ratings': total_ratings,
+        'is_open': is_open, 'tel': tel, 'website': website,
         'ml_score': round(adjusted_ml_score, 1),
         'rule_score': round(rule_score, 1),
-        'final_score': final_score,
-        'risk_text': risk_text,
-        'score_class': score_class,
-        'tag_class': tag_class,
-        'card_class': card_class,
-        'reasons': reasons,
-        'features': features
+        'final_score': final_score, 'risk_text': risk_text,
+        'score_class': score_class, 'tag_class': tag_class,
+        'card_class': card_class, 'reasons': reasons
     }
 
 
-# ── Radar Chart ───────────────────────────────────────────────────────────────
-def show_radar_chart(a):
-    categories = [
-        'Rating Anomaly',
-        'Review Pattern',
-        'Location Trust',
-        'Open Status',
-        'ML Anomaly'
-    ]
-
-    rating_anomaly = 80 if a['features'].get('high_rating_low_reviews') else 10
-    review_pattern = 80 if a['features'].get('round_review_count') else 15
-    location_trust = 70 if a['features'].get('incomplete_location') else 10
-    open_status = 60 if a['features'].get('open_no_reviews') else 10
-    ml_anomaly = a['ml_score']
-
-    values = [rating_anomaly, review_pattern, location_trust, open_status, ml_anomaly]
-
-    fig = go.Figure()
-    fig.add_trace(go.Scatterpolar(
-        r=values + [values[0]],
-        theta=categories + [categories[0]],
-        fill='toself',
-        fillcolor='rgba(180, 0, 255, 0.15)',
-        line=dict(color='#b400ff', width=2),
-        name='Risk Signals'
-    ))
-
-    fig.update_layout(
-        polar=dict(
-            radialaxis=dict(
-                visible=True,
-                range=[0, 100],
-                tickfont=dict(color='#6060a0', size=10),
-                gridcolor='rgba(255,255,255,0.08)'
-            ),
-            angularaxis=dict(
-                tickfont=dict(color='#9090b0', size=11),
-                gridcolor='rgba(255,255,255,0.08)'
-            ),
-            bgcolor='rgba(0,0,0,0)'
-        ),
-        paper_bgcolor='rgba(0,0,0,0)',
-        showlegend=False,
-        title=dict(
-            text='🕸️ Fraud Signal Radar',
-            font=dict(color='#ffffff', size=15),
-            x=0.5
-        ),
-        margin=dict(l=40, r=40, t=60, b=40),
-        height=350
-    )
-
-    #st.plotly_chart(fig, use_container_width=True)
-    st.plotly_chart(fig, use_container_width=True, key=f"radar_{a['name']}_{a['city']}")
-    
-
-
-# ── Hero ──────────────────────────────────────────────────────────────────────
+# Hero
 st.markdown("""
 <div class="hero">
     <div class="hero-tag">AI · BERT · Graph ML · Real-Time · Global</div>
@@ -629,63 +388,37 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Search ────────────────────────────────────────────────────────────────────
+# Search
 st.markdown('<div class="section-title">🔍 Check Any Business</div>', unsafe_allow_html=True)
 st.markdown('<div class="section-subtitle">Search any business anywhere in the world — from Lahore to London</div>', unsafe_allow_html=True)
 
 col1, col2, col3 = st.columns([2, 2, 1])
 with col1:
-    business_name = st.text_input(
-        "BUSINESS NAME",
-        placeholder="e.g. Layers Bakery, Xeven Solutions, KFC..."
-    )
+    business_name = st.text_input("BUSINESS NAME", placeholder="e.g. Layers Bakery, KFC, Xeven Solutions...")
 with col2:
-    city = st.text_input(
-        "CITY",
-        placeholder="e.g. Lahore, Karachi, Faisalabad, London..."
-    )
+    city = st.text_input("CITY", placeholder="e.g. Lahore, Karachi, Faisalabad, London...")
 with col3:
     st.markdown("<br>", unsafe_allow_html=True)
     search_btn = st.button("🔍 Analyze Now")
 
-# ── Results ───────────────────────────────────────────────────────────────────
+# Results
 if search_btn and business_name and city:
     with st.spinner(f'Searching for "{business_name}" in {city}...'):
         results = search_business(business_name, city)
 
     if results is None:
-        st.markdown(
-            '<div class="no-result">⚠️ API error — please check your internet and try again</div>',
-            unsafe_allow_html=True
-        )
+        st.markdown('<div class="no-result">⚠️ API error — please check your internet and try again</div>', unsafe_allow_html=True)
     elif len(results) == 0:
-        st.markdown(
-            f'<div class="no-result">❌ No results found for "<strong>{business_name}</strong>"'
-            f' in <strong>{city}</strong><br><br>💡 Try a shorter name or different spelling</div>',
-            unsafe_allow_html=True
-        )
+        st.markdown(f'<div class="no-result">❌ No results found for "<strong>{business_name}</strong>" in <strong>{city}</strong><br><br>💡 Try a shorter name or different spelling</div>', unsafe_allow_html=True)
     else:
-        st.markdown(
-            f'<div style="color:#6060a0;font-size:14px;margin-bottom:20px;">'
-            f'Found <strong style="color:#c060ff">{len(results)}</strong> result(s) for '
-            f'"<strong style="color:#ffffff">{business_name}</strong>" in '
-            f'<strong style="color:#ffffff">{city}</strong></div>',
-            unsafe_allow_html=True
-        )
+        st.markdown(f'<div style="color:#6060a0;font-size:14px;margin-bottom:20px;">Found <strong style="color:#c060ff">{len(results)}</strong> result(s) for "<strong style="color:#ffffff">{business_name}</strong>" in <strong style="color:#ffffff">{city}</strong></div>', unsafe_allow_html=True)
 
         for place in results:
             a = analyze_business(place)
-            reasons_html = "".join(
-                [f'<div class="flag-item">⚠️ {r}</div>' for r in a['reasons']]
-            )
-
+            reasons_html = "".join([f'<div class="flag-item">⚠️ {r}</div>' for r in a['reasons']])
             rating_display = f"⭐ {a['rating']}/5" if a['rating'] else "⭐ No rating"
             reviews_display = f"📝 {a['total_ratings']:,} reviews" if a['total_ratings'] else "📝 No reviews"
-            status_display = (
-                "🟢 Open Now" if a['is_open'] is True
-                else "🔴 Closed" if a['is_open'] is False
-                else "❓ Unknown hours"
-            )
+            status_display = "🟢 Open Now" if a['is_open'] is True else "🔴 Closed" if a['is_open'] is False else "❓ Unknown hours"
             phone_display = f"📞 {a['tel']}" if a['tel'] else "📞 Not listed"
             website_display = "🌐 Website available" if a['website'] else "🌐 No website"
 
@@ -712,8 +445,7 @@ if search_btn and business_name and city:
             </div>
         </div>
         <div style="text-align:center;min-width:130px;">
-            <div style="font-size:12px;color:#6060a0;text-transform:uppercase;
-            letter-spacing:1px;margin-bottom:8px;">Fake Risk</div>
+            <div style="font-size:12px;color:#6060a0;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Fake Risk</div>
             <div class="{a['score_class']}">{a['final_score']}%</div>
             <div class="{a['tag_class']}">{a['risk_text']}</div>
         </div>
@@ -721,16 +453,10 @@ if search_btn and business_name and city:
 </div>
 """, unsafe_allow_html=True)
 
-            # Show Radar Chart
-            show_radar_chart(a)
-
 elif search_btn:
-    st.markdown(
-        '<div class="no-result">💡 Please enter both a business name and city</div>',
-        unsafe_allow_html=True
-    )
+    st.markdown('<div class="no-result">💡 Please enter both a business name and city</div>', unsafe_allow_html=True)
 
-# ── How It Works ──────────────────────────────────────────────────────────────
+# How it works
 st.markdown('<div class="custom-divider"></div>', unsafe_allow_html=True)
 st.markdown("""
 <div class="how-it-works">
@@ -739,7 +465,7 @@ st.markdown("""
         <div class="step-number">1</div>
         <div class="step-content">
             <strong>Real-Time Data Fetch</strong>
-            Google business data is retrieved via Serper API covering businesses
+            Google business data retrieved via Serper API covering businesses
             worldwide including Pakistan with real ratings and review counts
         </div>
     </div>
@@ -747,26 +473,26 @@ st.markdown("""
         <div class="step-number">2</div>
         <div class="step-content">
             <strong>BERT + ML Analysis</strong>
-            Our model trained on 150,000+ businesses and 50,000+ reviews scores
-            the business using Isolation Forest anomaly detection combined with
-            BERT language analysis
+            Model trained on 150,000+ businesses and 50,000+ reviews scores
+            each business using Isolation Forest anomaly detection combined
+            with BERT language analysis
         </div>
     </div>
     <div class="how-step">
         <div class="step-number">3</div>
         <div class="step-content">
-            <strong>Fraud Signal Radar</strong>
-            A visual radar chart shows exactly which signals triggered the risk
-            score — rating anomaly, review patterns, location trust, open status
-            and ML anomaly score
+            <strong>Smart Signal Detection</strong>
+            Rule-based analysis checks for red flags: suspicious ratings,
+            missing data, unusual review patterns — while rewarding businesses
+            with many genuine reviews
         </div>
     </div>
     <div class="how-step">
         <div class="step-number">4</div>
         <div class="step-content">
             <strong>Combined Risk Score</strong>
-            All signals combine into a single Fake Risk Score (0-100%) with a
-            clear verdict: High Risk, Medium Risk, or Low Risk
+            All signals combine into a single Fake Risk Score (0-100%) with
+            a clear verdict: High Risk, Medium Risk, or Low Risk
         </div>
     </div>
 </div>
