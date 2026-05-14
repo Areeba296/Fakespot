@@ -6,8 +6,8 @@ from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 import google.generativeai as genai
 
-GEMINI_API_KEY = "AIzaSyCJM5AvQyeXodUjHFb55N22y_p3Bxe1FFM"
-genai.configure(api_key=GEMINI_API_KEY)
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+
 
 # Page config
 st.set_page_config(
@@ -19,9 +19,9 @@ st.set_page_config(
 
 # ── YOUR SERPER API KEY ───────────────────────────────────────────────────────
 #SERPER_API_KEY = "71cd91a80d97bf066f5db12e4d53e36e7a34f67f"  # <- Replace with your actual key
+
 import os
 SERPER_API_KEY = os.getenv("SERPER_API_KEY", "71cd91a80d97bf066f5db12e4d53e36e7a34f67f")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyCJM5AvQyeXodUjHFb55N22y_p3Bxe1FFM")
 
 # ── Custom CSS ────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -415,17 +415,31 @@ def search_business(business_name, city):
         return None
 def ask_assistant(question, business_context=""):
     try:
-        model = genai.GenerativeModel('gemini-2.0-flash')
         prompt = f"""You are FakeSpot AI Assistant — an expert in detecting fake business listings.
-You help users understand fake business patterns and explain risk scores.
-Keep answers concise, clear and helpful.
+    You help users understand fake business patterns and explain risk scores.
+    Keep answers concise, clear and helpful.
 {f'Current business context: {business_context}' if business_context else ''}
 
 User question: {question}"""
-        response = model.generate_content(prompt)
-        return response.text
+
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "mistralai/mistral-7b-instruct:free",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 500
+            },
+            timeout=15
+        )
+        data = response.json()
+        return data['choices'][0]['message']['content']
     except Exception as e:
         return f"Sorry I could not process that. Error: {str(e)}"
+    
 # ── Analyze business ──────────────────────────────────────────────────────────
 def analyze_business(place):
     name = place.get('name', 'Unknown')
