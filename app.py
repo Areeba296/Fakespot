@@ -16,7 +16,7 @@ st.set_page_config(
 
 # ── API Keys ──────────────────────────────────────────────────────────────────
 import os
-SERPER_API_KEY = os.getenv("SERPER_API_KEY", "8c44297978b71b13b53c19145bb6cc4fc541dcc2")
+SERPER_API_KEY = os.getenv("SERPER_API_KEY", "your_serper_api_key_here")
 
 # ── Custom CSS ────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -491,6 +491,8 @@ def analyze_business(place):
 
     # Reputation bonus
     reputation_bonus = 0
+    # Reputation bonus — reduce ML score for well established businesses
+    reputation_bonus = 0
     if rating and total_ratings:
         if rating >= 4.0 and total_ratings >= 50:
             reputation_bonus = 10
@@ -503,7 +505,10 @@ def analyze_business(place):
         if rating >= 4.7 and total_ratings >= 5000:
             reputation_bonus = 30
 
+    # Apply reputation bonus to ML score
     adjusted_ml_score = max(0, ml_score - reputation_bonus)
+
+    # Final combined score
     final_score = round(min(100, max(0, (adjusted_ml_score * 0.6 + rule_score * 0.4))), 1)
 
     if final_score >= 70:
@@ -598,8 +603,7 @@ def show_radar_chart(a):
         height=350
     )
 
-    #st.plotly_chart(fig, use_container_width=True)
-    st.plotly_chart(fig, use_container_width=True, key=f"radar_{a['name']}_{a['city']}")
+    st.plotly_chart(fig, use_container_width=True)
 
 
 # ── Hero ──────────────────────────────────────────────────────────────────────
