@@ -598,7 +598,8 @@ def show_radar_chart(a):
         height=350
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    #st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, key=f"radar_{a['name']}_{a['city']}")
 
 
 # ── Hero ──────────────────────────────────────────────────────────────────────
