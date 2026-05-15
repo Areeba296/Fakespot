@@ -241,7 +241,7 @@ def search_business(business_name, city):
                     'location': {
                         'formatted_address': r.get('address', 'Unknown'),
                         'city': city,
-                        'country': 'Pakistan'
+                        'country': r.get('address', '').split(',')[-1].strip() or city
                     },
                     'rating': r.get('rating', None),
                     'stats': {'total_ratings': r.get('ratingCount', 0)},
